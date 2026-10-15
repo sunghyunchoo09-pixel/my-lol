@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>League of Legends Animated Launcher</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #010a13;
+            font-family: 'Beaufort for LoL', 'Arial', sans-serif;
+            color: #cdbe91;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 1. 롤 배경 애니메이션 (일러스트 줌/움직임) */
+        .bg-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .bg-image {
+            width: 110%;
+            height: 110%;
+            position: absolute;
+            top: -5%;
+            left: -5%;
+            background: radial-gradient(circle, rgba(1, 10, 19, 0.2) 0%, rgba(1, 10, 19, 0.9) 100%),
+                        url('https://picsum.photos/1920/1080?dark') no-repeat center center/cover;
+            animation: lolLivingBg 15s ease-in-out infinite alternate;
+            filter: brightness(0.85) contrast(1.1);
+        }
+
+        @keyframes lolLivingBg {
+            0% { transform: scale(1) translate(0, 0); }
+            50% { transform: scale(1.05) translate(-10px, -5px); }
+            100% { transform: scale(1.03) translate(5px, 8px); }
+        }
+
+        /* 2. 입자/광원 효과용 Canvas */
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* 3. 롤 UI 오버레이 */
+        .ui-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px 50px;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+        }
+
+        /* 상단 네비게이션 바 */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: linear-gradient(180deg, rgba(1, 10, 19, 0.9) 0%, rgba(1, 10, 19, 0) 100%);
+            padding-bottom: 20px;
+        }
+
+        /* 롤 시그니처 PLAY 버튼 */
+        .play-btn {
+            position: relative;
+            background: linear-gradient(180deg, #1e2328 0%, #010a13 100%);
+            border: 2px solid #c8aa6e;
+            color: #f0e6d2;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 12px 45px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(200, 170, 110, 0.5);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .play-btn:hover {
+            border-color: #f0e6d2;
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(200, 170, 110, 0.8);
+            transform: scale(1.03);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            cursor: pointer;
+            color: #a09b8c;
+            transition: color 0.2s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: #f0e6d2;
+            text-shadow: 0 0 8px rgba(240, 230, 210, 0.6);
+        }
+
+        /* 중앙 라이브 스팟라이트 컨텐츠 */
+        .main-content {
+            margin-top: auto;
+            margin-bottom: 50px;
+            max-width: 500px;
+        }
+
+        .champ-title {
+            font-size: 18px;
+            color: #c8aa6e;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .champ-name {
+            font-size: 56px;
+            font-weight: 900;
+            color: #f0e6d2;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(200, 170, 110, 0.3);
+            margin: 5px 0 15px 0;
+        }
+
+        .champ-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #a09b8c;
+            text-shadow: 1px 1px 5px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 롤 애니메이션 배경 -->
+    <div class="bg-container">
+        <div class="bg-image"></div>
+    </div>
+
+    <!-- 스파크/파티클 효과 캔버스 -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- 롤 메인 UI -->
+    <div class="ui-container">
+        <div class="top-bar">
+            <button class="play-btn">GAME START</button>
+            <div class="nav-links">
+                <span class="nav-item active">홈</span>
+                <span class="nav-item">챔피언</span>
+                <span class="nav-item">컬렉션</span>
+                <span class="nav-item">상점</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="champ-title">새로운 시작</div>
+            <div class="champ-name">소환사의 협곡</div>
+            <div class="champ-desc">
+                전설이 될 준비가 되셨습니까? 새로운 스킬샷 프레임워크와 실시간 물리 엔진 기반의 미니 MOBA를 플레이해 보세요.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 배경에 떠다니는 황금빛/파란빛 롤 파티클(엠버) 효과 구현
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const particles = [];
+        const particleCount = 45;
+
+        class Particle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + Math.random() * 100;
+                this.size = Math.random() * 2.5 + 0.5;
+                this.speedY = Math.random() * 0.8 + 0.3;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.alpha = Math.random() * 0.7 + 0.3;
+                // 황금빛과 마법 푸른빛 입자 혼합
+                this.color = Math.random() > 0.3 ? '#c8aa6e' : '#00bcbc';
+            }
+
+            update() {
+                this.y -= this.speedY;
+                this.x += this.speedX;
+                this.alpha -= 0.002;
+
+                if (this.y < -10 || this.alpha <= 0) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        animateParticles();
+    </script>
+</body>
+</html>
