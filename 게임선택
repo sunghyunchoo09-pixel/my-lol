@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>League of Legends Animated Launcher</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #010a13;
+            font-family: 'Beaufort for LoL', 'Arial', sans-serif;
+            color: #cdbe91;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 롤 배경 애니메이션 */
+        .bg-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .bg-image {
+            width: 110%;
+            height: 110%;
+            position: absolute;
+            top: -5%;
+            left: -5%;
+            background: radial-gradient(circle, rgba(1, 10, 19, 0.3) 0%, rgba(1, 10, 19, 0.95) 100%),
+                        url('https://picsum.photos/1920/1080?dark') no-repeat center center/cover;
+            animation: lolLivingBg 15s ease-in-out infinite alternate;
+            filter: brightness(0.8) contrast(1.1);
+        }
+
+        @keyframes lolLivingBg {
+            0% { transform: scale(1) translate(0, 0); }
+            50% { transform: scale(1.05) translate(-10px, -5px); }
+            100% { transform: scale(1.03) translate(5px, 8px); }
+        }
+
+        /* 입자 효과 캔버스 */
+        #particleCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* 메인 UI 컨테이너 */
+        .ui-container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 30px 50px;
+        }
+
+        /* 상단 네비게이션 바 */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: linear-gradient(180deg, rgba(1, 10, 19, 0.9) 0%, rgba(1, 10, 19, 0) 100%);
+            padding-bottom: 20px;
+        }
+
+        /* 롤 시그니처 PLAY 버튼 */
+        .play-btn {
+            position: relative;
+            background: linear-gradient(180deg, #1e2328 0%, #010a13 100%);
+            border: 2px solid #c8aa6e;
+            color: #f0e6d2;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 12px 45px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(200, 170, 110, 0.5);
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.8);
+        }
+
+        .play-btn:hover {
+            border-color: #f0e6d2;
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(200, 170, 110, 0.8);
+            transform: scale(1.03);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-item {
+            cursor: pointer;
+            color: #a09b8c;
+            transition: color 0.2s;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            color: #f0e6d2;
+            text-shadow: 0 0 8px rgba(240, 230, 210, 0.6);
+        }
+
+        /* 1. 홈 화면 컨텐츠 */
+        .home-content {
+            margin-top: auto;
+            margin-bottom: 50px;
+            max-width: 500px;
+            transition: opacity 0.4s ease;
+        }
+
+        .home-content.hidden {
+            display: none;
+        }
+
+        .champ-title {
+            font-size: 18px;
+            color: #c8aa6e;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .champ-name {
+            font-size: 56px;
+            font-weight: 900;
+            color: #f0e6d2;
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.9), 0 0 20px rgba(200, 170, 110, 0.3);
+            margin: 5px 0 15px 0;
+        }
+
+        .champ-desc {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #a09b8c;
+        }
+
+        /* 2. 게임 모드 선택 오버레이 화면 (PLAY 버튼 누르면 표시) */
+        .mode-overlay {
+            position: absolute;
+            top: 90px;
+            left: 50px;
+            right: 50px;
+            bottom: 50px;
+            background: rgba(1, 10, 19, 0.88);
+            border: 1px solid #785a28;
+            box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 20;
+        }
+
+        .mode-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mode-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #3c3c41;
+            padding-bottom: 15px;
+            margin-bottom: 30px;
+        }
+
+        .mode-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #f0e6d2;
+            letter-spacing: 2px;
+        }
+
+        .close-btn {
+            background: none;
+            border: 1px solid #a09b8c;
+            color: #a09b8c;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .close-btn:hover {
+            color: #f0e6d2;
+            border-color: #f0e6d2;
+        }
+
+        /* 게임 모드 카드리스트 */
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            height: 100%;
+        }
+
+        .mode-card {
+            position: relative;
+            background: #09141e;
+            border: 2px solid #1e2328;
+            border-radius: 4px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 25px;
+        }
+
+        .mode-card:hover {
+            border-color: #c8aa6e;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(200, 170, 110, 0.2);
+        }
+
+        .mode-card.selected {
+            border-color: #005a82;
+            box-shadow: 0 0 20px rgba(0, 200, 255, 0.4);
+        }
+
+        /* 카드 내부 텍스트 및 효과 */
+        .card-bg-sr {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(1,10,19,0.95) 100%),
+                        url('https://picsum.photos/600/800?random=1') center/cover;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .card-bg-aram {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(1,10,19,0.95) 100%),
+                        url('https://picsum.photos/600/800?random=2') center/cover;
+            opacity: 0.6;
+            transition: opacity 0.3s;
+        }
+
+        .mode-card:hover .card-bg-sr,
+        .mode-card:hover .card-bg-aram {
+            opacity: 0.9;
+        }
+
+        .card-info {
+            position: relative;
+            z-index: 2;
+        }
+
+        .card-tag {
+            font-size: 12px;
+            color: #005a82;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .card-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #f0e6d2;
+            margin-bottom: 10px;
+        }
+
+        .card-desc {
+            font-size: 13px;
+            color: #a09b8c;
+            line-height: 1.4;
+        }
+
+        /* 모드 선택 후 매칭 찾기 버튼 */
+        .match-start-bar {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .confirm-btn {
+            background: linear-gradient(180deg, #1e2328 0%, #010a13 100%);
+            border: 2px solid #785a28;
+            color: #a09b8c;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 15px 60px;
+            cursor: not-allowed;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+        }
+
+        .confirm-btn.ready {
+            background: linear-gradient(180deg, #0596a5 0%, #005a82 100%);
+            border-color: #00bcbc;
+            color: #ffffff;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 188, 188, 0.5);
+        }
+
+        .confirm-btn.ready:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 25px rgba(0, 188, 188, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 롤 애니메이션 배경 -->
+    <div class="bg-container">
+        <div class="bg-image"></div>
+    </div>
+
+    <!-- 스파크/파티클 효과 캔버스 -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- 롤 메인 UI -->
+    <div class="ui-container">
+        <div class="top-bar">
+            <button class="play-btn" id="playBtn">GAME START</button>
+            <div class="nav-links">
+                <span class="nav-item active" id="homeTab">홈</span>
+                <span class="nav-item">챔피언</span>
+                <span class="nav-item">컬렉션</span>
+                <span class="nav-item">상점</span>
+            </div>
+        </div>
+
+        <!-- 메인 홈 화면 -->
+        <div class="home-content" id="homeContent">
+            <div class="champ-title">새로운 시작</div>
+            <div class="champ-name">소환사의 협곡</div>
+            <div class="champ-desc">
+                [GAME START] 버튼을 눌러 소환사의 협곡 일반/랭크 게임 및 칼바람 나락 모드를 선택하세요.
+            </div>
+        </div>
+    </div>
+
+    <!-- 게임 모드 선택 창 (팝업 레이어) -->
+    <div class="mode-overlay" id="modeOverlay">
+        <div class="mode-header">
+            <div class="mode-title">게임 모드 선택</div>
+            <button class="close-btn" id="closeOverlay">✕</button>
+        </div>
+
+        <div class="mode-grid">
+            <!-- 1. 소환사의 협곡 (일반) -->
+            <div class="mode-card" data-mode="normal">
+                <div class="card-bg-sr"></div>
+                <div class="card-info">
+                    <div class="card-tag">5v5 PvP</div>
+                    <div class="card-name">일반 게임</div>
+                    <div class="card-desc">소환사의 협곡에서 부담 없이 드래프트 및 교전을 즐기는 5 대 5 표준 대전 모드입니다.</div>
+                </div>
+            </div>
+
+            <!-- 2. 소환사의 협곡 (개인/2인 랭크) -->
+            <div class="mode-card" data-mode="ranked">
+                <div class="card-bg-sr"></div>
+                <div class="card-info">
+                    <div class="card-tag" style="color: #c8aa6e;">Competitive</div>
+                    <div class="card-name">랭크 게임</div>
+                    <div class="card-desc">자신의 실력을 증명하고 티어를 올리기 위한 치열한 5 대 5 경쟁 게임 모드입니다.</div>
+                </div>
+            </div>
+
+            <!-- 3. 칼바람 나락 (ARAM) -->
+            <div class="mode-card" data-mode="aram">
+                <div class="card-bg-aram"></div>
+                <div class="card-info">
+                    <div class="card-tag" style="color: #00bcbc;">Random All Mid</div>
+                    <div class="card-name">칼바람 나락</div>
+                    <div class="card-desc">무작위로 챔피언을 선택받아 단하나의 라인에서 쉼 없이 끊임없는 한타를 펼칩니다.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="match-start-bar">
+            <button class="confirm-btn" id="startMatchBtn">모드를 선택하세요</button>
+        </div>
+    </div>
+
+    <script>
+        // 1. GAME START 버튼 클릭 시 모드 선택 창 열기/닫기
+        const playBtn = document.getElementById('playBtn');
+        const modeOverlay = document.getElementById('modeOverlay');
+        const closeOverlay = document.getElementById('closeOverlay');
+        const homeContent = document.getElementById('homeContent');
+        const modeCards = document.querySelectorAll('.mode-card');
+        const startMatchBtn = document.getElementById('startMatchBtn');
+
+        let selectedGameMode = null;
+
+        playBtn.addEventListener('click', () => {
+            modeOverlay.classList.add('active');
+            homeContent.classList.add('hidden');
+        });
+
+        closeOverlay.addEventListener('click', () => {
+            modeOverlay.classList.remove('active');
+            homeContent.classList.remove('hidden');
+        });
+
+        // 2. 모드 카드 선택 로직
+        modeCards.forEach(card => {
+            card.addEventListener('click', () => {
+                modeCards.forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedGameMode = card.getAttribute('data-mode');
+
+                startMatchBtn.classList.add('ready');
+                if (selectedGameMode === 'normal') startMatchBtn.innerText = '일반 게임 찾기';
+                if (selectedGameMode === 'ranked') startMatchBtn.innerText = '랭크 게임 찾기';
+                if (selectedGameMode === 'aram') startMatchBtn.innerText = '칼바람 나락 찾기';
+            });
+        });
+
+        // 3. 매칭 시작 버튼 클릭 이벤트
+        startMatchBtn.addEventListener('click', () => {
+            if (selectedGameMode) {
+                alert(`[${startMatchBtn.innerText}] 매칭을 시작합니다! (대전 상대를 찾는 중...)`);
+            }
+        });
+
+        // 4. 배경 마법 파티클 연출
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const particles = [];
+        for (let i = 0; i < 45; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: canvas.height + Math.random() * 100,
+                size: Math.random() * 2.5 + 0.5,
+                speedY: Math.random() * 0.8 + 0.3,
+                speedX: (Math.random() - 0.5) * 0.4,
+                alpha: Math.random() * 0.7 + 0.3,
+                color: Math.random() > 0.3 ? '#c8aa6e' : '#00bcbc'
+            });
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.y -= p.speedY;
+                p.x += p.speedX;
+                p.alpha -= 0.002;
+
+                if (p.y < -10 || p.alpha <= 0) {
+                    p.x = Math.random() * canvas.width;
+                    p.y = canvas.height + 10;
+                    p.alpha = Math.random() * 0.7 + 0.3;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 8;
+                ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+    </script>
+</body>
+</html>
